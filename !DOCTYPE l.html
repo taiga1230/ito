@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITO 乱数メーカー</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px; }
+        .number-display { font-size: 80px; font-weight: bold; color: #e63946; margin: 20px 0; display: none; }
+        input { padding: 10px; width: 70%; border: 1px solid #ddd; border-radius: 5px; }
+        ul { list-style: none; padding: 0; text-align: left; display: inline-block; }
+        .player-count { font-size: 14px; color: #666; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>ITO 乱数メーカー</h2>
+    
+    <div id="setup-screen">
+        <div class="player-count">現在の参加人数: <span id="count-num">0</span>人</div>
+        <input type="text" id="name-input" placeholder="名前を入力">
+        <button onclick="addPlayer()">追加</button>
+        <br>
+        <ul id="player-list"></ul>
+        <br>
+        <button onclick="startGame()" style="background: #28a745; width: 80%;">ゲーム開始</button>
+    </div>
+
+    <div id="game-screen" style="display:none;">
+        <h3 id="current-player-name"></h3>
+        <p>準備ができたらボタンを押してください</p>
+        <div id="number-view" class="number-display">--</div>
+        <button onmousedown="showNumber()" onmouseup="hideNumber()" ontouchstart="showNumber()" ontouchend="hideNumber()" style="background: #6c757d;">長押しで数字を確認</button>
+        <br><br>
+        <button id="next-btn" onclick="nextTurn()" style="background: #007bff;">次のプレイヤーへ</button>
+    </div>
+</div>
+
+<script>
+    let players = [];
+    let numbers = [];
+    let currentIndex = 0;
+
+    function addPlayer() {
+        const input = document.getElementById('name-input');
+        const name = input.value.trim();
+        if (name) {
+            players.push(name);
+            const li = document.createElement('li');
+            li.textContent = `・ ${name}`;
+            document.getElementById('player-list').appendChild(li);
+            input.value = '';
+            document.getElementById('count-num').textContent = players.length;
+        }
+    }
+
+    function startGame() {
+        // 修正ポイント：2人以上でないと開始できない
+        if (players.length < 2) {
+            alert("プレイヤーは2人以上必要です。名前を入力して「追加」してください。");
+            return;
+        }
+        
+        // 1-100の配列を作成してシャッフル
+        numbers = Array.from({length: 100}, (_, i) => i + 1)
+                       .sort(() => Math.random() - 0.5);
+        
+        currentIndex = 0;
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        updateTurn();
+    }
+
+    function updateTurn() {
+        if (currentIndex < players.length) {
+            document.getElementById('current-player-name').textContent = players[currentIndex] + " さんの番";
+            document.getElementById('number-view').style.display = 'none';
+            document.getElementById('number-view').textContent = numbers[currentIndex];
+        } else {
+            alert("全員の確認が終了しました。ゲーム開始！");
+            location.reload(); 
+        }
+    }
+
+    function showNumber() { document.getElementById('number-view').style.display = 'block'; }
+    function hideNumber() { document.getElementById('number-view').style.display = 'none'; }
+
+    function nextTurn() {
+        currentIndex++;
+        updateTurn();
+    }
+</script>
+</body>
+</html>
