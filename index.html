@@ -7,11 +7,22 @@
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px; }
-        .number-display { font-size: 80px; font-weight: bold; color: #e63946; margin: 20px 0; display: none; }
-        input { padding: 10px; width: 70%; border: 1px solid #ddd; border-radius: 5px; }
-        ul { list-style: none; padding: 0; text-align: left; display: inline-block; }
+        button { border: none; padding: 12px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 8px 4px; transition: opacity 0.2s; }
+        button:active { opacity: 0.7; }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; width: 80%; }
+        .btn-view { background: #6c757d; color: white; width: 90%; font-weight: bold; }
+        .btn-reset { background: #dc3545; color: white; font-size: 14px; margin-top: 30px; padding: 8px 15px; opacity: 0.8; }
+        
+        .number-display { font-size: 80px; font-weight: bold; color: #e63946; margin: 20px 0; min-height: 100px; visibility: hidden; }
+        .visible { visibility: visible; }
+        
+        input { padding: 12px; width: 60%; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        ul { list-style: none; padding: 0; text-align: left; display: inline-block; min-width: 150px; }
+        li { padding: 5px 0; border-bottom: 1px solid #eee; }
         .player-count { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .instruction { font-size: 14px; color: #555; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -22,20 +33,33 @@
     <div id="setup-screen">
         <div class="player-count">現在の参加人数: <span id="count-num">0</span>人</div>
         <input type="text" id="name-input" placeholder="名前を入力">
-        <button onclick="addPlayer()">追加</button>
+        <button class="btn-primary" onclick="addPlayer()">追加</button>
         <br>
         <ul id="player-list"></ul>
         <br>
-        <button onclick="startGame()" style="background: #28a745; width: 80%;">ゲーム開始</button>
+        <button class="btn-success" onclick="startGame()">ゲーム開始</button>
     </div>
 
     <div id="game-screen" style="display:none;">
         <h3 id="current-player-name"></h3>
-        <p>準備ができたらボタンを長押ししてください</p>
+        <p class="instruction">指を置いている間だけ数字が見えます</p>
+        
         <div id="number-view" class="number-display">--</div>
-        <button onmousedown="showNumber()" onmouseup="hideNumber()" ontouchstart="showNumber()" ontouchend="hideNumber()" style="background: #6c757d;">長押しで数字を確認</button>
-        <br><br>
-        <button id="next-btn" onclick="nextTurn()" style="background: #007bff;">次のプレイヤーへ</button>
+        
+        <button class="btn-view" 
+                onmousedown="showNumber()" onmouseup="hideNumber()" 
+                ontouchstart="showNumber()" ontouchend="hideNumber()">
+            長押しで数字を確認
+        </button>
+        
+        <br>
+        <button class="btn-primary" onclick="nextTurn()" style="width: 90%; margin-top: 15px;">確認完了（次の人へ）</button>
+        
+        <hr style="margin-top: 40px; border: 0; border-top: 1px solid #eee;">
+        
+        <button class="btn-reset" onclick="confirmReset()">
+            やり直す（乱数を再抽選）
+        </button>
     </div>
 </div>
 
@@ -44,6 +68,7 @@
     let numbers = [];
     let currentIndex = 0;
 
+    // プレイヤー追加
     function addPlayer() {
         const input = document.getElementById('name-input');
         const name = input.value.trim();
@@ -54,17 +79,18 @@
             document.getElementById('player-list').appendChild(li);
             input.value = '';
             document.getElementById('count-num').textContent = players.length;
+            input.focus();
         }
     }
 
+    // ゲーム開始（乱数生成）
     function startGame() {
-        // 修正ポイント：2人以上でないと開始できない
         if (players.length < 2) {
-            alert("プレイヤーは2人以上必要です。名前を入力して「追加」してください。");
+            alert("プレイヤーは2人以上必要です。");
             return;
         }
         
-        // 1-100の配列を作成してシャッフル
+        // 1-100の重複なしリストを作成してシャッフル
         numbers = Array.from({length: 100}, (_, i) => i + 1)
                        .sort(() => Math.random() - 0.5);
         
@@ -74,23 +100,43 @@
         updateTurn();
     }
 
+    // ターンの更新
     function updateTurn() {
         if (currentIndex < players.length) {
             document.getElementById('current-player-name').textContent = players[currentIndex] + " さんの番";
-            document.getElementById('number-view').style.display = 'none';
             document.getElementById('number-view').textContent = numbers[currentIndex];
+            hideNumber(); // 初期状態は隠す
         } else {
-            alert("全員の確認が終了しました。ゲーム開始！");
+            alert("全員の確認が終わりました！\n数字を小さい順に出していきましょう。");
             location.reload(); 
         }
     }
 
-    function showNumber() { document.getElementById('number-view').style.display = 'block'; }
-    function hideNumber() { document.getElementById('number-view').style.display = 'none'; }
+    // 数字の表示・非表示（長押し対応）
+    function showNumber() { document.getElementById('number-view').classList.add('visible'); }
+    function hideNumber() { document.getElementById('number-view').classList.remove('visible'); }
 
+    // 次のプレイヤーへ
     function nextTurn() {
         currentIndex++;
         updateTurn();
+    }
+
+    // ★追加：リセット機能（二重確認付き）
+    function confirmReset() {
+        const firstCheck = confirm("現在の乱数を破棄して、最初の人から配り直しますか？\n（入力した名前はそのまま残ります）");
+        
+        if (firstCheck) {
+            const secondCheck = confirm("本当によろしいですか？\n全員の数字が変わります。");
+            if (secondCheck) {
+                // 乱数を再生成して、最初のプレイヤーからやり直し
+                numbers = Array.from({length: 100}, (_, i) => i + 1)
+                               .sort(() => Math.random() - 0.5);
+                currentIndex = 0;
+                updateTurn();
+                alert("乱数を再抽選しました。1人目の方から確認してください。");
+            }
+        }
     }
 </script>
 </body>
