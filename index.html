@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITO 乱数メーカー</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; color: #333; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        
+        /* ボタン基本設定 */
         button { border: none; padding: 12px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 8px 4px; transition: opacity 0.2s; }
         button:active { opacity: 0.7; }
         
@@ -14,23 +16,31 @@
         .btn-success { background: #28a745; color: white; width: 80%; }
         .btn-view { background: #6c757d; color: white; width: 90%; font-weight: bold; }
         .btn-reset { background: #dc3545; color: white; font-size: 14px; margin-top: 30px; padding: 8px 15px; opacity: 0.8; }
+        .btn-end { background: #343a40; color: white; width: 80%; margin-top: 40px; }
         
+        /* 数字表示 */
         .number-display { font-size: 80px; font-weight: bold; color: #e63946; margin: 20px 0; min-height: 100px; visibility: hidden; }
         .visible { visibility: visible; }
         
+        /* 入力・リスト */
         input { padding: 12px; width: 60%; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
         ul { list-style: none; padding: 0; text-align: left; display: inline-block; min-width: 150px; }
         li { padding: 5px 0; border-bottom: 1px solid #eee; }
+        
+        /* ルール表示 */
+        .rule-box { text-align: left; background: #fff9db; padding: 15px; border-radius: 10px; border: 1px solid #fab005; margin: 20px 0; line-height: 1.6; }
+        .rule-important { color: #e63946; font-weight: bold; font-size: 1.1em; background: yellow; padding: 2px 4px; }
+        
         .player-count { font-size: 14px; color: #666; margin-bottom: 10px; }
-        .instruction { font-size: 14px; color: #555; margin-bottom: 10px; }
+        h1 { margin-top: 0; color: #222; letter-spacing: 2px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>ITO 乱数メーカー</h2>
     
     <div id="setup-screen">
+        <h2>ITO 乱数メーカー</h2>
         <div class="player-count">現在の参加人数: <span id="count-num">0</span>人</div>
         <input type="text" id="name-input" placeholder="名前を入力">
         <button class="btn-primary" onclick="addPlayer()">追加</button>
@@ -40,9 +50,9 @@
         <button class="btn-success" onclick="startGame()">ゲーム開始</button>
     </div>
 
-    <div id="game-screen" style="display:none;">
+    <div id="confirm-screen" style="display:none;">
         <h3 id="current-player-name"></h3>
-        <p class="instruction">指を置いている間だけ数字が見えます</p>
+        <p style="font-size: 14px; color: #555;">指を置いている間だけ数字が見えます</p>
         
         <div id="number-view" class="number-display">--</div>
         
@@ -56,10 +66,27 @@
         <button class="btn-primary" onclick="nextTurn()" style="width: 90%; margin-top: 15px;">確認完了（次の人へ）</button>
         
         <hr style="margin-top: 40px; border: 0; border-top: 1px solid #eee;">
+        <button class="btn-reset" onclick="confirmReset()">やり直す（乱数を再抽選）</button>
+    </div>
+
+    <div id="play-screen" style="display:none;">
+        <h1>ITO</h1>
         
-        <button class="btn-reset" onclick="confirmReset()">
-            やり直す（乱数を再抽選）
-        </button>
+        <div class="rule-box">
+            <ul style="list-style: disc; margin: 0; padding-left: 20px; display: block;">
+                <li>自分の数字を表しているものなどを１つ言おう！</li>
+                <li>全員の数字が小さい順になるように並ぼう！</li>
+                <li style="margin-top: 10px;">
+                    <span class="rule-important">自分の数字は言ったらダメ！！！</span>
+                </li>
+            </ul>
+        </div>
+
+        <div style="font-size: 14px; color: #666; margin-top: 20px;">
+            参加者: <span id="final-player-list"></span>
+        </div>
+
+        <button class="btn-end" onclick="endGame()">ゲーム終了</button>
     </div>
 </div>
 
@@ -68,7 +95,6 @@
     let numbers = [];
     let currentIndex = 0;
 
-    // プレイヤー追加
     function addPlayer() {
         const input = document.getElementById('name-input');
         const name = input.value.trim();
@@ -83,59 +109,60 @@
         }
     }
 
-    // ゲーム開始（乱数生成）
     function startGame() {
         if (players.length < 2) {
             alert("プレイヤーは2人以上必要です。");
             return;
         }
         
-        // 1-100の重複なしリストを作成してシャッフル
         numbers = Array.from({length: 100}, (_, i) => i + 1)
                        .sort(() => Math.random() - 0.5);
         
         currentIndex = 0;
         document.getElementById('setup-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'block';
+        document.getElementById('confirm-screen').style.display = 'block';
         updateTurn();
     }
 
-    // ターンの更新
     function updateTurn() {
         if (currentIndex < players.length) {
             document.getElementById('current-player-name').textContent = players[currentIndex] + " さんの番";
             document.getElementById('number-view').textContent = numbers[currentIndex];
-            hideNumber(); // 初期状態は隠す
+            hideNumber();
         } else {
-            alert("全員の確認が終わりました！\n数字を小さい順に出していきましょう。");
-            location.reload(); 
+            // 全員の確認が終わったらプレイ画面へ
+            showPlayScreen();
         }
     }
 
-    // 数字の表示・非表示（長押し対応）
+    function showPlayScreen() {
+        document.getElementById('confirm-screen').style.display = 'none';
+        document.getElementById('play-screen').style.display = 'block';
+        document.getElementById('final-player-list').textContent = players.join(', ');
+    }
+
     function showNumber() { document.getElementById('number-view').classList.add('visible'); }
     function hideNumber() { document.getElementById('number-view').classList.remove('visible'); }
 
-    // 次のプレイヤーへ
     function nextTurn() {
         currentIndex++;
         updateTurn();
     }
 
-    // ★追加：リセット機能（二重確認付き）
     function confirmReset() {
-        const firstCheck = confirm("現在の乱数を破棄して、最初の人から配り直しますか？\n（入力した名前はそのまま残ります）");
-        
-        if (firstCheck) {
-            const secondCheck = confirm("本当によろしいですか？\n全員の数字が変わります。");
-            if (secondCheck) {
-                // 乱数を再生成して、最初のプレイヤーからやり直し
+        if (confirm("現在の乱数を破棄して、最初の人から配り直しますか？\n（名前は残ります）")) {
+            if (confirm("本当によろしいですか？")) {
                 numbers = Array.from({length: 100}, (_, i) => i + 1)
                                .sort(() => Math.random() - 0.5);
                 currentIndex = 0;
                 updateTurn();
-                alert("乱数を再抽選しました。1人目の方から確認してください。");
             }
+        }
+    }
+
+    function endGame() {
+        if (confirm("ゲームを終了してよろしいですか？\n（最初からやり直しになります）")) {
+            location.reload();
         }
     }
 </script>
